@@ -40,4 +40,40 @@ js_marker = "KoraCraft Studio Edition 02: lightweight progressive motion"
 if js_marker not in js:
     js_path.write_text(js + "\n" + Path(__file__).with_name("excellence.js").read_text())
 
+
+# Guard against stale DB sockets after Neon/serverless idle periods. The app is
+# on a small, scale-to-zero hosting setup, so validate fresh connections and
+# avoid carrying them across long idle windows.
+settings_path = root / "koracraft_project/settings.py"
+settings = settings_path.read_text()
+if "conn_max_age=600" in settings:
+    settings = settings.replace("conn_max_age=600", "conn_max_age=0", 1)
+elif "conn_max_age=0" not in settings:
+    raise SystemExit("Expected DATABASE_URL connection-age setting not found")
+health_anchor = "    )}\nelse:\n    DATABASES = {\"default\": {"
+health_replacement = "    )}\n    DATABASES[\"default\"][\"CONN_HEALTH_CHECKS\"] = True\nelse:\n    DATABASES = {\"default\": {"
+if "CONN_HEALTH_CHECKS" not in settings:
+    if health_anchor not in settings:
+        raise SystemExit("Expected DATABASES health-check insertion anchor not found")
+    settings = settings.replace(health_anchor, health_replacement, 1)
+old_logging = '''LOGGING = {
+    "version": 1, "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False}},
+}'''
+new_logging = '''LOGGING = {
+    "version": 1, "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+        "django.db.backends": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+    },
+}'''
+if old_logging in settings:
+    settings = settings.replace(old_logging, new_logging, 1)
+elif '"django.request": {"handlers": ["console"], "level": "ERROR"' not in settings:
+    raise SystemExit("Expected Django logging configuration not found")
+settings_path.write_text(settings)
+
 print("KoraCraft Studio Edition 02 assets applied.")
