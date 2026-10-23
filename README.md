@@ -2,34 +2,39 @@
 
 **KoraCraft — Africa’s Makers. Your Style.**
 
-A Django marketplace concept for African makers, tailors, shoemakers and textile sellers. Powered by Fortitech Digital Cluster. Copyright © 2026.
+A Django marketplace for African makers, tailors, shoemakers and textile sellers. Powered by Fortitech Digital Cluster. Copyright © 2026.
 
 ## Deployment architecture
 
 - Django application served by Gunicorn.
-- PostgreSQL is required for production; do not use the unrelated Urbisora database.
+- PostgreSQL is configured as a separate KoraCraft database; do not use the unrelated Urbisora database.
 - Static assets are collected and served by WhiteNoise.
-- Three bundled vector sample illustrations cover footwear, tailoring and textiles. Showcase products and sellers are fictional demo data.
-- Payments are intentionally disabled and should remain marked **Coming Soon** until a provider is integrated and tested.
+- Three bundled sample illustrations cover footwear, tailoring and textiles. Showcase products and sellers are fictional demo data.
+- Payments remain disabled and should display **Coming Soon** until a provider is integrated and tested.
 - Google sign-in remains optional until Google OAuth client credentials are configured.
-- Email verification should only be enabled after a real sender/provider has been configured and tested.
+- Email verification is disabled until a real sender/provider is configured and tested. Password-based registration is available without verification during initial launch.
 
-## Render source bootstrap
+## Render deployment
 
-The source archive is stored in small base64 segments under `archive/part-*.b64` to keep the private source repository manageable. Render's build command should be `bash render-build.sh`; this verifies, extracts and builds the Django project. The server start command is `gunicorn koracraft_project.wsgi:application`.
+This repository is private. Before deploying, authorize the Render GitHub App to access `profomenifewilliams-creator/koracraft` at https://github.com/apps/render/installations/new. In the installation's repository access list, select this repository and save the change. This grants Render read access so it can clone the source; it does not make the repository public.
 
-The build installs `requirements.txt`, collects static files, applies Django migrations and seeds fictional sample items. A persistent PostgreSQL `DATABASE_URL` and a strong `DJANGO_SECRET_KEY` are required before a production deploy can complete. The application fails closed when production database/secret settings are missing.
+The Render Blueprint is `render.yaml`. The build command is `bash render-build.sh`, which verifies and extracts the segmented source archive, then runs `build.sh`. The server command is `gunicorn koracraft_project.wsgi:application`; health checks use `/health/`.
+
+Set `DATABASE_URL` in Render's Environment settings using KoraCraft's separate PostgreSQL connection string, and keep it secret. Render's Blueprint generates `DJANGO_SECRET_KEY`. Keep `DJANGO_DEBUG=False`. Do not set payment secrets; checkout payment collection is not enabled.
+
+The build installs dependencies, collects static files, applies migrations and seeds clearly fictional sample products. A successful build is not a substitute for live smoke tests.
 
 ## Current deployment checklist
 
 - [x] Dedicated private repository initialized.
-- [x] Compressed application source segmented and checksum-verified against the local archive.
-- [x] Render build script committed.
+- [x] Compressed source archive segmented and validated against the local archive.
+- [x] Render build script and Blueprint committed.
 - [x] Python source compilation and JavaScript syntax checks passed locally.
-- [ ] Provision a separate persistent PostgreSQL database for KoraCraft.
-- [ ] Configure production environment variables and deploy the Render web service.
-- [ ] Verify Django migrations, health, registration, seller workflow, cart/order path, email delivery and responsive pages on the live service.
+- [x] Separate KoraCraft PostgreSQL database provisioned on Neon (free plan), not Render; no Render paid database was created.
+- [ ] Authorize Render GitHub access to this private repository.
+- [ ] Create and deploy the Render web service with the database connection in service secrets.
+- [ ] Verify migrations, health, signup/login, seller workflows, cart/order paths, email delivery and responsive pages on the live service.
 
-## Security notes
+## Before accepting real customers
 
-Do not commit `.env`, API keys, OAuth secrets, database URLs or production credentials. Configure them through Render environment settings. Before accepting real customers, complete runtime tests, sender-domain verification, upload storage configuration, backups/monitoring and payment-provider integration.
+Do not commit `.env`, API keys, OAuth secrets, database URLs or production credentials. Configure secrets only in Render environment settings. Complete live runtime tests, sender-domain verification, persistent seller/product upload storage, backups/monitoring and payment-provider integration before accepting real customers.
