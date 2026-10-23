@@ -7,5 +7,7 @@ cat archive/part-*.b64 | tr -d '\r\n ' | base64 -d > "$ARCHIVE"
 tar -tzf "$ARCHIVE" >/dev/null
 tar -xzf "$ARCHIVE" -C .
 rm -rf archive
+# Apply the tracked Studio Edition overlay after extracting the original Django source.
+python launch-upgrade/apply.py
 chmod +x build.sh
 ./build.sh
