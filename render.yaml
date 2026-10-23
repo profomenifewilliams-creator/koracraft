@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: koracraft-marketplace
+    runtime: python
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: bash render-build.sh
+    startCommand: gunicorn koracraft_project.wsgi:application
+    healthCheckPath: /health/
+    autoDeploy: true
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: EMAIL_VERIFICATION_REQUIRED
+        value: "false"
+      - key: DEFAULT_FROM_EMAIL
+        value: no-reply@koracraft.example
+      - key: DATABASE_URL
+        sync: false
