@@ -34,7 +34,46 @@ def _attach_seller_application(user):
     if not created and seller.status == "pending" and application.status == "approved":
         seller.status = "active"
         seller.save(update_fields=["status", "updated_at"])
+    if not created:
+        changed = []
+        if seller.status == "pending" and application.status == "approved":
+            seller.status = "active"
+            changed.append("status")
+        if seller.shop_name != application.business_name:
+            seller.shop_name = application.business_name
+            seller.slug = ""
+            changed.extend(["shop_name", "slug"])
+        if seller.business_type != application.business_type:
+            seller.business_type = application.business_type
+            changed.append("business_type")
+        if seller.city != city:
+            seller.city = city
+            changed.append("city")
+        if seller.country != country:
+            seller.country = country
+            changed.append("country")
+        if changed:
+            seller.save(update_fields=list(dict.fromkeys(changed + ["updated_at"])))
     return seller
+
+
+def _create_pending_seller_workspace(user, display_name=""):
+    """Seller accounts get a workspace immediately, before their application."""
+    existing = Seller.objects.filter(user=user).first()
+    if existing:
+        return existing
+    name = (display_name or user.get_full_name() or user.username or "Maker").strip()
+    first_name = name.split()[0] if name else "Maker"
+    shop_name = (first_name + "'s Studio")[:120]
+    return Seller.objects.create(
+        user=user,
+        shop_name=shop_name,
+        business_type="other",
+        status="pending",
+        is_verified=False,
+        is_demo=False,
+    )
+
 
 '''
 if "def _attach_seller_application(user):" not in views:
@@ -73,6 +112,8 @@ def register_view(request):
             login(request, user, backend="django.contrib.auth.backends.ModelBackend")
             request.session.pop("koracraft_cart_hydrated", None)
             seller = _attach_seller_application(user)
+            if not seller and account_type == "seller":
+                seller = _create_pending_seller_workspace(user, name)
             messages.success(request, "Welcome to KoraCraft. Your account is ready.")
             if request.POST.get("next") or request.GET.get("next"):
                 return redirect(_valid_next(request, fallback="seller_dashboard" if seller else "account_dashboard"))
@@ -104,6 +145,8 @@ def verify_email(request, token):
         request.session.pop("koracraft_cart_hydrated", None)
         account_type = request.session.pop("koracraft_new_account_type", "buyer")
         seller = _attach_seller_application(user)
+        if not seller and account_type == "seller":
+            seller = _create_pending_seller_workspace(user, user.get_full_name())
         messages.success(request, "Your email is confirmed. Welcome to KoraCraft.")
         return redirect("seller_dashboard" if seller else ("seller_apply" if account_type == "seller" else "account_dashboard"))
     return render(request, "marketplace/email_verification.html", {"valid_token": True, "expired": False, "email": record.user.email})
@@ -177,7 +220,8 @@ def seller_dashboard(request):
     products = seller.products.order_by("-created_at")
     order_items = seller.order_items.select_related("order", "product").order_by("-order__created_at")[:30]
     total_orders = seller.order_items.values("order_id").distinct().count()
-    return render(request, "marketplace/seller_dashboard.html", {"seller": seller, "products": products, "order_items": order_items, "profile_form": profile_form, "total_orders": total_orders})
+    has_application = SellerApplication.objects.filter(Q(user=request.user) | Q(email__iexact=request.user.email)).exclude(status="declined").exists()
+    return render(request, "marketplace/seller_dashboard.html", {"seller": seller, "products": products, "order_items": order_items, "profile_form": profile_form, "total_orders": total_orders, "has_application": has_application})
 '''
 views = replace_fn(views, "seller_dashboard", "product_create", seller_dash)
 
