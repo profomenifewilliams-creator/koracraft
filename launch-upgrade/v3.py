@@ -61,10 +61,21 @@ if 'data-excellence-version="3"' not in home:
     home = home.replace('<a href="{% url \'home\' %}#categories"', '<a href="{% url \'categories_page\' %}"')
     home = home.replace('<a href="{% url \'home\' %}#makers"', '<a href="{% url \'makers_directory\' %}"')
     home = home.replace('<a href="{% url \'home\' %}#how"', '<a href="{% url \'how_it_works\' %}"')
+    # Category cards are now anchors; close them as anchors too. Keep the
+    # replacement scoped to the category grid so no unrelated buttons change.
+    grid_start = home.find('<div class="category-grid">')
+    grid_end = home.find('\\n      </div>\\n    </section>', grid_start)
+    if grid_start < 0 or grid_end < 0:
+        raise SystemExit("Studio Edition 03: category grid boundary missing")
+    category_grid = home[grid_start:grid_end].replace('</button>', '</a>')
+    home = home[:grid_start] + category_grid + home[grid_end:]
     home_path.write_text(home)
 
 # The shared site header/footer used on all non-home routes also navigates to real pages.
 base = base_path.read_text()
+base = base.replace('<body data-backend-auth="1"', '<body data-excellence-version="3" data-backend-auth="1"', 1)
+if "{% static 'marketplace/js/app.js' %}" not in base:
+    base = base.replace("</body>", "<script src=\"{% static 'marketplace/js/app.js' %}\"></script></body>", 1)
 base = base.replace('<a href="{% url \'home\' %}#categories">Categories</a>', '<a href="{% url \'categories_page\' %}">Categories</a>')
 base = base.replace('<a href="{% url \'home\' %}#makers">Meet the makers</a>', '<a href="{% url \'makers_directory\' %}">Meet the makers</a>')
 base = base.replace('<a href="{% url \'home\' %}#how">How it works</a>', '<a href="{% url \'how_it_works\' %}">How it works</a>')
