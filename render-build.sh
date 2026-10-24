@@ -9,5 +9,6 @@ tar -xzf "$ARCHIVE" -C .
 rm -rf archive
 # Apply the tracked Studio Edition overlay after extracting the original Django source.
 python launch-upgrade/apply.py
+python launch-upgrade/v3.py
 chmod +x build.sh
 ./build.sh
