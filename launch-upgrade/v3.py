@@ -64,7 +64,7 @@ if 'data-excellence-version="3"' not in home:
     # Category cards are now anchors; close them as anchors too. Keep the
     # replacement scoped to the category grid so no unrelated buttons change.
     grid_start = home.find('<div class="category-grid">')
-    grid_end = home.find('\\n      </div>\\n    </section>', grid_start)
+    grid_end = home.find('\n      </div>\n    </section>', grid_start)
     if grid_start < 0 or grid_end < 0:
         raise SystemExit("Studio Edition 03: category grid boundary missing")
     category_grid = home[grid_start:grid_end].replace('</button>', '</a>')
